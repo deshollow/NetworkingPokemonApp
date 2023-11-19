@@ -5,39 +5,85 @@
 //  Created by deshollow on 15.11.2023.
 //
 
-//1.0. Всегда начинаем с создания модели, первое действие
-
 import Foundation
 
-struct PokemonApp: Decodable { //a.п
-    let results: [Pokemon] //массив, тк структура Pokemon содержит массив данных
+struct PokemonApp: Codable {
+    let results: [Pokemon]
+    
+    init(results: [Pokemon]) {
+        self.results = results
+    }
+    
+    static func getPokemons(from value: Any) -> [Pokemon] {
+        guard let pokemonData = value as? [String: Any] else { return [] }
+        guard let results = pokemonData["results"] as? [[String: Any]] else { return [] }
+
+        
+        var pokemons = [Pokemon]()
+        
+        for pokemon in results {
+            pokemons.append(Pokemon(pokemonData: pokemon))
+        }
+        return pokemons
+    }
 }
 
-struct Pokemon: Decodable { //b.если бы наоборот преобразовывать из модели в data, то подписывали бы под Encodable
+struct Pokemon: Codable {
     let name: String
     let url: String
+    
+    init(name: String, url: String) {
+        self.name = name
+        self.url = url
+    }
+    
+    init(pokemonData: [String: Any]){
+        self.name = pokemonData["name"] as? String ?? ""
+        self.url = pokemonData["url"] as? String ?? ""
+    }
 }
 
-struct Character: Decodable { //c.далее далаем вложенность других структур
+struct Character: Codable {
     let sprites: Sprites
-}
+    
+    init(characterDict: [String: Any]) {
+        let spritesDict = characterDict["sprites"] as? [String: Any] ?? [:]
+            self.sprites = Sprites(spritesDict: spritesDict)
+        }
+    
+        static func getCharacter(from value: Any) -> Character? {
+            guard let characterData = value as? [String: Any] else { return nil }
+            
+            return Character(characterDict: characterData)
+        }
 
-struct Sprites: Decodable {
+    }
+
+struct Sprites: Codable {
     let other: Home
+    
+    init(spritesDict: [String: Any]) {
+         let otherDict = spritesDict["other"] as? [String: Any] ?? [:]
+            self.other = Home(homeDict: otherDict)
+        
+        }
 }
 
-struct Home: Decodable {
+struct Home: Codable {
     let home: Front
+    
+    init(homeDict: [String: Any]) {
+        let homeDict = homeDict["home"] as? [String: Any] ?? [:]
+        self.home = Front(value: homeDict)
+    }
 }
 
-struct Front: Decodable {
+struct Front: Codable {
     let front_default: String
+    
+    init(value: [String: Any]) {
+        self.front_default = value["front_default"] as? String ?? ""
+    }
 }
 
-//+инфо:
-//В NetworkManager при захвате complition в убегающем замыкании, мы будем брать именно [Pokemon] а не [PokemonApp]
-//Тк у нас основная модель PokemonApp внутри которой лежит массив результатов [Pokemon]
-//Как работает система парсинга decoder:
-//Он смотрит на нашу модель, берет тип данных который мы декодируем PokemonApp.self и проверят
-//Сможет ли он свой словарь который находится на сервере, переложить на нашу модель. Ок results: и кладет в него массив с другими словарями
-//[Pokemon]. Именно это и есть массив словарей
+
